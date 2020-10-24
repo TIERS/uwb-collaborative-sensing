@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>uwb_collaborative_sensing_old</name>
+  <name>uwb_collaborative_sensing</name>
   <version>0.0.0</version>
   <description>The uwb_collaborative_sensing_old package</description>
 

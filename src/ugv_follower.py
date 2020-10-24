@@ -22,6 +22,7 @@ import rospy
 
 from nav_msgs.msg       import Odometry
 
+from geometry_msgs.msg  import Pose
 from geometry_msgs.msg  import Twist
 from geometry_msgs.msg 	import PoseStamped
 
@@ -40,6 +41,7 @@ class UGV_Follower :
         self.cmd_vel_topic = rospy.get_param('~cmd_vel_topic', "/cmd_vel")
         self.uav_uwb_topic = rospy.get_param('~uav_uwb_topic', "/dwm1001/tag/dronie/position")
         self.ugv_uwb_topic = rospy.get_param('~ugv_uwb_topic', "/dwm1001/tag/ugv/position")
+        self.vio_topic = rospy.get_param('~vio_topic', "/camera/odom/sample")
 
         # Publish data
         self.speed_pub 	 = rospy.Publisher(self.cmd_vel_topic, Twist, queue_size=10)
@@ -49,7 +51,12 @@ class UGV_Follower :
         self.y = 0
         self.uav_x = 99
         self.uav_y = 0     # By default will start looking to the positive 'x' direction
-        self.orientation_z = 0
+        self.yaw = 0
+
+        # Subscribe to pose topics
+        self.ugv_uwb_subscriber = rospy.Subscriber(self.ugv_uwb_topic, Pose, self.update_ugv_pos)
+        self.uav_uwb_subscriber = rospy.Subscriber(self.uav_uwb_topic, Pose, self.update_uav_pos)
+        self.vio_subscriber = rospy.Subscriber(self.vio_topic, Odometry, self.vio_cb)
 
     def run(self) :
         '''
@@ -57,38 +64,40 @@ class UGV_Follower :
             Goes into infinite loop with rospy spin()
         '''
 
-        self.move_timer = rospy.Timerrospy.Duration(0.05, self.update_vel)
+        self.move_timer = rospy.Timer(rospy.Duration(0.05), self.update_vel)
 
         # Infinite loop
         rospy.spin()
 
-    def update_vel(self) :
+    def update_vel(self, event) :
         '''
             TO DO
             Only for testing very basic twist calculation to converge in ~2 seconds.
             Min rotational speed is 0.5 rad/s
         '''
         objective_yaw = math.atan2(self.uav_y-self.y, self.uav_x-self.x)
-
+        print(objective_yaw)
+        print(" Mypos=({}, {}), UAVpos=({}, {}), yaw={}, objective_yaw={}".format(
+            self.x, self.y, self.uav_x, self.uav_y, self.yaw, objective_yaw))
         twist = Twist()
 
         # Do nothing if yaw error < 0.2
         yaw_diff = abs(self.yaw-objective_yaw)
-        if yaw_diff < 0.5 :
+        if yaw_diff < 0.1 :
             return
 
         # Increase yaw
-        if self.yaw < objective_yaw and yaw_diff < math.pi / 2 :
+        if self.yaw < objective_yaw and yaw_diff < math.pi :
             twist.angular.z = 0.5 + yaw_diff/4
-        elif self.yaw > objective_yaw and yaw_diff > math.pi / 2 :
+        elif self.yaw > objective_yaw and yaw_diff > math.pi :
             twist.angular.z = 0.5 + yaw_diff/4
         # Decrease yaw
-        elif self.yaw < objective_yaw and yaw_diff < math.pi / 2 :
+        elif self.yaw < objective_yaw and yaw_diff < math.pi :
             twist.angular.z = -0.5 - yaw_diff/4
         else :
             twist.angular.z = -0.5 - yaw_diff/4
         
-        self.speed_pub(twist)
+        self.speed_pub.publish(twist)
 
     def update_ugv_pos(self, pos) :
         self.x = pos.position.x
@@ -115,4 +124,20 @@ class UGV_Follower :
 
 
         
+
+if __name__ == '__main__':
+    '''
+        Run the node
+    '''
+    try:
+
+        # Create new object
+        follower = UGV_Follower()
+
+        # Loop while reading data
+        follower.run()
+
+    except rospy.ROSInterruptException:
+
+        pass
 

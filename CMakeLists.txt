@@ -9,7 +9,6 @@ project(uwb_collaborative_sensing_old)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
-  pcl
   pcl_conversions
   pcl_msgs
   pcl_ros

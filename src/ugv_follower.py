@@ -16,6 +16,7 @@ __status__     = "Development"
 import tf
 import os
 import sys
+import math
 import time
 import rospy
 
@@ -61,11 +62,41 @@ class UGV_Follower :
         # Infinite loop
         rospy.spin()
 
+    def update_vel(self) :
+        '''
+            TO DO
+            Only for testing very basic twist calculation to converge in ~2 seconds.
+            Min rotational speed is 0.5 rad/s
+        '''
+        objective_yaw = math.atan2(self.uav_y-self.y, self.uav_x-self.x)
+
+        twist = Twist()
+
+        # Do nothing if yaw error < 0.2
+        yaw_diff = abs(self.yaw-objective_yaw)
+        if yaw_diff < 0.5 :
+            return
+
+        # Increase yaw
+        if self.yaw < objective_yaw and yaw_diff < math.pi / 2 :
+            twist.angular.z = 0.5 + yaw_diff/4
+        elif self.yaw > objective_yaw and yaw_diff > math.pi / 2 :
+            twist.angular.z = 0.5 + yaw_diff/4
+        # Decrease yaw
+        elif self.yaw < objective_yaw and yaw_diff < math.pi / 2 :
+            twist.angular.z = -0.5 - yaw_diff/4
+        else :
+            twist.angular.z = -0.5 - yaw_diff/4
+        
+        self.speed_pub(twist)
+
     def update_ugv_pos(self, pos) :
-        pass
+        self.x = pos.position.x
+        self.y = pos.position.y
 
     def update_uav_pos(self, pos) :
-        pass
+        self.uav_x = pos.position.x
+        self.uav_y = pos.position.y
 
     def vio_cb(self, odom) :
         '''

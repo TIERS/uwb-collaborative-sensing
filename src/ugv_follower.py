@@ -76,7 +76,6 @@ class UGV_Follower :
             Min rotational speed is 0.5 rad/s
         '''
         objective_yaw = math.atan2(self.uav_y-self.y, self.uav_x-self.x)
-        print(objective_yaw)
         print(" Mypos=({}, {}), UAVpos=({}, {}), yaw={}, objective_yaw={}".format(
             self.x, self.y, self.uav_x, self.uav_y, self.yaw, objective_yaw))
         twist = Twist()
